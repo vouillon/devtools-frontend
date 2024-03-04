@@ -99,6 +99,9 @@ export class TestWasmInterface implements WasmInterface {
     }
     throw new Error(`No global ${global}`);
   }
+  getCachedValue(i: number): string {
+    return ''
+  }
 }
 
 export class TestValue implements Value {

@@ -127,6 +127,15 @@ class NamespaceObject extends SDK.RemoteObject.LocalJSONObject {
   }
 }
 
+function wrapRemoteObject(
+    callFrame: SDK.DebuggerModel.CallFrame, object: Chrome.DevTools.RemoteObject|Chrome.DevTools.ForeignObject,
+    plugin: DebuggerLanguagePlugin): SDK.RemoteObject.RemoteObject {
+  if (object.type === 'other') {
+    return callFrame.debuggerModel.runtimeModel().createRemoteObject(JSON.parse(object.value));
+  }
+  return new ExtensionRemoteObject(callFrame, object, plugin);
+}
+
 class SourceScopeRemoteObject extends SDK.RemoteObject.RemoteObjectImpl {
   variables: Chrome.DevTools.Variable[];
   #callFrame: SDK.DebuggerModel.CallFrame;
@@ -162,7 +171,7 @@ class SourceScopeRemoteObject extends SDK.RemoteObject.RemoteObjectImpl {
       let sourceVar: SDK.RemoteObject.RemoteObject|undefined;
       try {
         const evalResult = await this.#plugin.evaluate(variable.name, getRawLocation(this.#callFrame), this.stopId);
-        sourceVar = evalResult ? new ExtensionRemoteObject(this.#callFrame, evalResult, this.#plugin) :
+        sourceVar = evalResult ? wrapRemoteObject(this.#callFrame, evalResult, this.#plugin) :
                                  new SDK.RemoteObject.LocalJSONObject(undefined);
       } catch (e) {
         console.warn(e);
@@ -353,7 +362,7 @@ export class ExtensionRemoteObject extends SDK.RemoteObject.RemoteObject {
       const extensionObjectProperties = await this.plugin.getProperties(objectId);
       const properties = extensionObjectProperties.map(
           p => new SDK.RemoteObject.RemoteObjectProperty(
-              p.name, new ExtensionRemoteObject(this.callFrame, p.value, this.plugin)));
+              p.name, wrapRemoteObject(this.callFrame, p.value, this.plugin)));
       return {properties, internalProperties: null};
     }
 
@@ -442,7 +451,7 @@ export class DebuggerLanguagePluginManager implements
     try {
       const object = await plugin.evaluate(expression, location, this.stopIdForCallFrame(callFrame));
       if (object) {
-        return {object: new ExtensionRemoteObject(callFrame, object, plugin), exceptionDetails: undefined};
+        return {object: wrapRemoteObject(callFrame, object, plugin), exceptionDetails: undefined};
       }
       return {object: new SDK.RemoteObject.LocalJSONObject(undefined), exceptionDetails: undefined};
     } catch (error) {

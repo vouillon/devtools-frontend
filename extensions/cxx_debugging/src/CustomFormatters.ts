@@ -37,6 +37,7 @@ export interface WasmInterface {
   getOp(op: number): WasmValue;
   getLocal(local: number): WasmValue;
   getGlobal(global: number): WasmValue;
+  getCachedValue(i: number): string;
 }
 
 export interface Value {
@@ -342,7 +343,7 @@ export class CXXValue implements Value, LazyObject {
     return properties;
   }
 
-  async asRemoteObject(): Promise<Chrome.DevTools.RemoteObject> {
+  async asRemoteObject(): Promise<Chrome.DevTools.RemoteObject|Chrome.DevTools.ForeignObject> {
     if (this.type.hasValue && this.type.arraySize === 0) {
       const formatter = CustomFormatters.get(this.type);
       if (!formatter) {
@@ -462,7 +463,7 @@ export class CXXValue implements Value, LazyObject {
 
 export interface LazyObject {
   getProperties(): Promise<{name: string, property: LazyObject}[]>;
-  asRemoteObject(): Promise<Chrome.DevTools.RemoteObject>;
+  asRemoteObject(): Promise<Chrome.DevTools.RemoteObject|Chrome.DevTools.ForeignObject>;
 }
 
 export function primitiveObject<T>(
@@ -600,6 +601,7 @@ export interface Formatter {
 export class HostWasmInterface {
   private readonly hostInterface: HostInterface;
   private readonly stopId: unknown;
+  private readonly cache: string[] = [];
   readonly view: WasmMemoryView;
   constructor(hostInterface: HostInterface, stopId: unknown) {
     this.hostInterface = hostInterface;
@@ -610,13 +612,25 @@ export class HostWasmInterface {
     return new Uint8Array(this.hostInterface.getWasmLinearMemory(offset, length, this.stopId));
   }
   getOp(op: number): WasmValue {
-    return this.hostInterface.getWasmOp(op, this.stopId);
+    return this.maybeCache(this.hostInterface.getWasmOp(op, this.stopId));
   }
   getLocal(local: number): WasmValue {
-    return this.hostInterface.getWasmLocal(local, this.stopId);
+    return this.maybeCache(this.hostInterface.getWasmLocal(local, this.stopId));
   }
   getGlobal(global: number): WasmValue {
-    return this.hostInterface.getWasmGlobal(global, this.stopId);
+    return this.maybeCache(this.hostInterface.getWasmGlobal(global, this.stopId));
+  }
+  maybeCache(value: WasmValue): WasmValue {
+    // Only a scalar value can cross the DWARF interpreter, so we
+    // replace the value by an integer.
+    if (value.type == 'other') {
+      this.cache.push(value.value);
+      return {type: 'i32', value: this.cache.length - 1};
+    }
+    return value;
+  }
+  getCachedValue(i: number): string {
+    return this.cache[i];
   }
 }
 

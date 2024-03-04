@@ -258,3 +258,18 @@ export function formatInt128(wasm: WasmInterface, value: Value): bigint {
   return (view.getBigInt64(8, true) << BigInt(64)) | (view.getBigUint64(0, true));
 }
 CustomFormatters.addFormatter({types: ['__int128'], format: formatInt128});
+
+export function formatExternRef(wasm: WasmInterface, value: Value): () => LazyObject {
+  const foreignObject = {type: 'other', value: wasm.getCachedValue(value.asUint32())};
+  const obj = {
+    async getProperties(): Promise<{name: string, property: LazyObject}[]> {
+      return [];
+    },
+    async asRemoteObject(): Promise<{type: 'other', value: string}> {
+      return foreignObject;
+    }
+  };
+  return () => obj;
+}
+CustomFormatters.addFormatter({types: ['__externref_t'], format: formatExternRef});
+CustomFormatters.addFormatter({types: ['externref_t'], format: formatExternRef});
