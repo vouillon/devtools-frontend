@@ -162,8 +162,11 @@ class SourceScopeRemoteObject extends SDK.RemoteObject.RemoteObjectImpl {
       let sourceVar: SDK.RemoteObject.RemoteObject|undefined;
       try {
         const evalResult = await this.#plugin.evaluate(variable.name, getRawLocation(this.#callFrame), this.stopId);
-        sourceVar = evalResult ? new ExtensionRemoteObject(this.#callFrame, evalResult, this.#plugin) :
-                                 new SDK.RemoteObject.LocalJSONObject(undefined);
+        sourceVar = evalResult ?
+            evalResult.type == 'other' ?
+            this.#callFrame.debuggerModel.runtimeModel().createRemoteObject(JSON.parse(evalResult.value)) :
+            new ExtensionRemoteObject(this.#callFrame, evalResult, this.#plugin) :
+            new SDK.RemoteObject.LocalJSONObject(undefined);
       } catch (e) {
         console.warn(e);
         sourceVar = new SDK.RemoteObject.LocalJSONObject(undefined);
@@ -442,7 +445,14 @@ export class DebuggerLanguagePluginManager implements
     try {
       const object = await plugin.evaluate(expression, location, this.stopIdForCallFrame(callFrame));
       if (object) {
-        return {object: new ExtensionRemoteObject(callFrame, object, plugin), exceptionDetails: undefined};
+        if (object.type == 'other') {
+          return {
+            object: callFrame.debuggerModel.runtimeModel().createRemoteObject(JSON.parse(object.value)),
+            exceptionDetails: undefined
+          };
+        } else {
+          return {object: new ExtensionRemoteObject(callFrame, object, plugin), exceptionDetails: undefined};
+        }
       }
       return {object: new SDK.RemoteObject.LocalJSONObject(undefined), exceptionDetails: undefined};
     } catch (error) {

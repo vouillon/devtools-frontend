@@ -245,7 +245,8 @@ export namespace Chrome {
        * opaque key that should be passed to the APIs accessing wasm state, e.g., getWasmLinearMemory. A stopId is
        * invalidated once the debugger resumes.
        */
-      evaluate(expression: string, context: RawLocation, stopId: unknown): Promise<RemoteObject|null>;
+      evaluate(expression: string, context: RawLocation, stopId: unknown):
+          Promise<RemoteObject|{type: 'other', value: string}|null>;
 
       /**
        * Retrieve properties of the remote object identified by the object id.

@@ -328,7 +328,7 @@ export class ExtensionServer extends Common.ObjectWrapper.ObjectWrapper<EventTyp
       callFrameId: callFrame.id,
       expression,
       silent: true,
-      returnByValue: true,
+      generatePreview: true,
       throwOnSideEffect: true,
     });
 
