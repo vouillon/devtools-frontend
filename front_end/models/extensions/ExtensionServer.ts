@@ -318,34 +318,54 @@ export class ExtensionServer extends Common.ObjectWrapper.ObjectWrapper<EventTyp
     return this.status.OK();
   }
 
-  private async loadWasmValue<T>(expression: string, stopId: unknown): Promise<Record|T> {
+  private async loadWasmValue(expectValue:boolean, expression: string, stopId: unknown): Promise<{value:Record}|Protocol.Runtime.RemoteObject> {
     const {pluginManager} = Bindings.DebuggerWorkspaceBinding.DebuggerWorkspaceBinding.instance();
     const callFrame = pluginManager.callFrameForStopId(stopId as Bindings.DebuggerLanguagePlugins.StopId);
     if (!callFrame) {
-      return this.status.E_BADARG('stopId', 'Unknown stop id');
+      return {value: this.status.E_BADARG('stopId', 'Unknown stop id')};
     }
     const result = await callFrame.debuggerModel.agent.invoke_evaluateOnCallFrame({
       callFrameId: callFrame.id,
       expression,
       silent: true,
-      generatePreview: true,
+      returnByValue: !expectValue,
+      generatePreview: expectValue,
       throwOnSideEffect: true,
     });
 
     if (!result.exceptionDetails && !result.getError()) {
-      return result.result.value;
+      return result.result;
     }
 
-    return this.status.E_FAILED('Failed');
+    return {value:this.status.E_FAILED('Failed')};
   }
 
   private async onGetWasmLinearMemory(message: PrivateAPI.ExtensionServerRequestMessage): Promise<Record|number[]> {
     if (message.command !== PrivateAPI.Commands.GetWasmLinearMemory) {
       return this.status.E_BADARG('command', `expected ${PrivateAPI.Commands.GetWasmLinearMemory}`);
     }
-    return await this.loadWasmValue<number[]>(
+    const result = await this.loadWasmValue(false,
         `[].slice.call(new Uint8Array(memories[0].buffer, ${Number(message.offset)}, ${Number(message.length)}))`,
         message.stopId);
+    return result.value
+  }
+
+
+  private convertWasmValue(obj : {value:Record}|Protocol.Runtime.RemoteObject) : Chrome.DevTools.WasmValue |{type: 'other', value: string} {
+      if ('value' in obj) return obj.value;
+      const type = obj?.description;
+      let value : string =
+        obj.preview?.properties?.find((o)=>o.name=="value")?.value ?? '';
+      switch (type) {
+      case 'i32':case 'f32':case 'f64':
+           return { type, value: Number(value)};
+      case 'i64':
+           return { type, value: BigInt(value)};
+      case 'v128':
+           return { type, value};
+      default:
+           return { type: 'other', value: JSON.stringify (obj)};
+      }
   }
 
   private async onGetWasmGlobal(message: PrivateAPI.ExtensionServerRequestMessage):
@@ -354,8 +374,8 @@ export class ExtensionServer extends Common.ObjectWrapper.ObjectWrapper<EventTyp
       return this.status.E_BADARG('command', `expected ${PrivateAPI.Commands.GetWasmGlobal}`);
     }
     const global = Number(message.global);
-    const result = await this.loadWasmValue<Chrome.DevTools.WasmValue>(`globals[${global}]`, message.stopId);
-    return result ?? this.status.E_BADARG('global', `No global with index ${global}`);
+    const result = await this.loadWasmValue(true, `globals[${global}]`, message.stopId);
+    return this.convertWasmValue(result) ?? this.status.E_BADARG('global', `No global with index ${global}`);
   }
 
   private async onGetWasmLocal(message: PrivateAPI.ExtensionServerRequestMessage):
@@ -364,8 +384,8 @@ export class ExtensionServer extends Common.ObjectWrapper.ObjectWrapper<EventTyp
       return this.status.E_BADARG('command', `expected ${PrivateAPI.Commands.GetWasmLocal}`);
     }
     const local = Number(message.local);
-    const result = await this.loadWasmValue<Chrome.DevTools.WasmValue>(`locals[${local}]`, message.stopId);
-    return result ?? this.status.E_BADARG('local', `No local with index ${local}`);
+    const result = await this.loadWasmValue(true, `locals[${local}]`, message.stopId);
+    return this.convertWasmValue(result.value) ?? this.status.E_BADARG('local', `No local with index ${local}`);
   }
 
   private async onGetWasmOp(message: PrivateAPI.ExtensionServerRequestMessage):
@@ -374,8 +394,8 @@ export class ExtensionServer extends Common.ObjectWrapper.ObjectWrapper<EventTyp
       return this.status.E_BADARG('command', `expected ${PrivateAPI.Commands.GetWasmOp}`);
     }
     const op = Number(message.op);
-    const result = await this.loadWasmValue<Chrome.DevTools.WasmValue>(`stack[${op}]`, message.stopId);
-    return result ?? this.status.E_BADARG('op', `No operand with index ${op}`);
+    const result = await this.loadWasmValue(true, `stack[${op}]`, message.stopId);
+    return this.convertWasmValue(result.value) ?? this.status.E_BADARG('op', `No operand with index ${op}`);
   }
 
   private registerRecorderExtensionEndpoint(
