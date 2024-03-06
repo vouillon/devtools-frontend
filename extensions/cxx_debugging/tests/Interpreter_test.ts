@@ -25,9 +25,12 @@ class LLDBEvalDebugger implements LLDBEvalTests.Debugger {
     return new LLDBEvalDebugger(dbg, plugin);
   }
 
-  private async stringify(result: Chrome.DevTools.RemoteObject): Promise<string> {
+  private async stringify(result: Chrome.DevTools.RemoteObject|{ type: "other", value: string }): Promise<string> {
     if (!this.#plugin.getProperties) {
       throw new Error('getProperties not implemented');
+    }
+    if (!('objectId' in result)) {
+      return 'externref';
     }
     if (result.objectId) {
       const properties = await this.#plugin.getProperties(result.objectId);

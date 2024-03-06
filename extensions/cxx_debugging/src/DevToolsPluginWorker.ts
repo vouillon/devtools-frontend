@@ -64,7 +64,7 @@ export class RPCInterface implements WorkerInterface, HostInterface {
   }
 
   evaluate(expression: string, context: Chrome.DevTools.RawLocation, stopId: unknown):
-      Promise<Chrome.DevTools.RemoteObject|null> {
+      Promise<Chrome.DevTools.RemoteObject|{ type: "other", value: string}|null> {
     if (this.plugin.evaluate) {
       return this.plugin.evaluate(expression, context, stopId);
     }

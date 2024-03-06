@@ -265,7 +265,7 @@ export namespace Chrome {
       symbol_types: string[];
     }
 
-    export type WasmValue = {type: 'i32'|'f32'|'f64', value: number}|{type: 'i64', value: bigint}|{type: 'v128', value: string}|{type:'other', value:string};
+    export type WasmValue = {type: 'i32'|'f32'|'f64', value: number}|{type: 'i64', value: bigint}|{type: 'v128'|'externref', value: string};
 
     export interface LanguageExtensions {
       registerLanguageExtensionPlugin(

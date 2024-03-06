@@ -7,7 +7,7 @@ import type {Chrome} from '../../../extension-api/ExtensionAPI';
 export type WasmValue = {
   type: 'i32'|'f32'|'f64',
   value: number
-}|{type: 'i64', value: bigint}|{type: 'v128', value: string};
+}|{type: 'i64', value: bigint}|{type: 'v128'|'externref', value: string};
 
 export type WasmSimdValue = string;
 
