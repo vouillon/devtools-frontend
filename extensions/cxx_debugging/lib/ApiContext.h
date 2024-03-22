@@ -37,7 +37,7 @@ class DebuggerProxy {
  public:
   struct WasmValue {
     llvm::wasm::ValType type;
-    std::variant<int32_t, int64_t, float, double, string> value;
+    std::variant<int32_t, int64_t, float, double, std::string> value;
   };
 
   explicit DebuggerProxy(const emscripten::val& proxy) : proxy_(proxy) {}

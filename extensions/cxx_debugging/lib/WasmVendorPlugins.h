@@ -259,6 +259,11 @@ class SymbolFileWasmDWARF : public ::SymbolFileDWARF {
     return LLDB_INVALID_OFFSET;
   }
 
+  template<class... Ts>
+  struct overloaded : Ts... { using Ts::operator()...; };
+  template<class... Ts>
+  overloaded(Ts...) -> overloaded<Ts...>;
+
   bool ParseVendorDWARFOpcode(
       uint8_t op,
       const lldb_private::DataExtractor& opcodes,
@@ -277,10 +282,11 @@ class SymbolFileWasmDWARF : public ::SymbolFileDWARF {
           llvm::errs() << llvm::toString(value.takeError());
           return false;
         }
-        auto stack_value = std::visit(
-            [](auto v) { return lldb_private::Scalar(v); }, value->value);
-        stack.push_back(stack_value);
-        stack.back().SetValueType(lldb_private::Value::ValueType::Scalar);
+        std::visit(overloaded{
+            [&stack](auto v) { stack.push_back(lldb_private::Scalar(v)); },
+              [&stack](std::string s) { stack.push_back(lldb_private::Value((const void *) s.c_str(), s.length())); }},
+            value->value);
+//        stack.back().SetValueType(lldb_private::Value::ValueType::Scalar);
         return true;
       }
     }
