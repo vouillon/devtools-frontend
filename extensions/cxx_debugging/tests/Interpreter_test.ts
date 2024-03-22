@@ -29,7 +29,7 @@ class LLDBEvalDebugger implements LLDBEvalTests.Debugger {
     if (!this.#plugin.getProperties) {
       throw new Error('getProperties not implemented');
     }
-    if (!('objectId' in result)) {
+    if (!('description' in result)) {
       return 'externref';
     }
     if (result.objectId) {
