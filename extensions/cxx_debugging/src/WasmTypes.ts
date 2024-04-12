@@ -7,7 +7,7 @@ import type {Chrome} from '../../../extension-api/ExtensionAPI';
 export type WasmValue = {
   type: 'i32'|'f32'|'f64',
   value: number
-}|{type: 'i64', value: bigint}|{type: 'v128'|'externref', value: string};
+}|{type: 'i64', value: bigint}|{type: 'v128'|'other', value: string};
 
 export type WasmSimdValue = string;
 
@@ -19,7 +19,7 @@ export const enum SerializedWasmType {
   f32,
   f64,
   v128,
-  externref
+  other
 }
 
 export function serializeWasmValue(value: WasmValue|ArrayBuffer, buffer: SharedArrayBuffer): SerializedWasmType {
@@ -50,11 +50,11 @@ export function serializeWasmValue(value: WasmValue|ArrayBuffer, buffer: SharedA
       view.setInt32(8, Number(c), true);
       view.setInt32(12, Number(d), true);
       return SerializedWasmType.v128;
-    case 'externref':
-      const {written} = (new TextEncoder).encodeInto(value.value,
-                           (new Uint8Array(buffer)).subarray(2));
-      view.setUint16(0, written);
-      return SerializedWasmType.externref;
+    case 'other':
+      const buf = (new TextEncoder).encode(value.value);
+      (new Uint8Array(buffer)).subarray(2).set(buf);
+      view.setUint16(0, buf.length);
+      return SerializedWasmType.other;
     default:
       throw new Error('cannot serialize non-numerical wasm type');
   }
@@ -87,17 +87,17 @@ export function deserializeWasmValue(buffer: ArrayBufferLike, type: SerializedWa
         value: `i32x4 0x${a.toString(16).padStart(8, '0')} 0x${b.toString(16).padStart(8, '0')} 0x${
             c.toString(16).padStart(8, '0')} 0x${d.toString(16).padStart(8, '0')}`
       };
-    case SerializedWasmType.externref:
+    case SerializedWasmType.other:
       const len = view.getUint16(0);
       const value =
-        (new TextDecoder).decode(new Uint8Array(buffer).subarray(2));
-      return { type: 'externref', value };
+        (new TextDecoder).decode(new Uint8Array(buffer).slice(2,len+2));
+      return { type: 'other', value };
   }
   // @ts-expect-error
   throw new Error('Invalid primitive wasm type');
 }
 
-export const kMaxWasmValueSize = 4 + 4 + 4 * 10;
+export const kMaxWasmValueSize = 65536; //4 + 4 + 4 * 10;
 
 export type WasmFunction = (...args: WasmPrimitive[]) => WasmPrimitive;
 
