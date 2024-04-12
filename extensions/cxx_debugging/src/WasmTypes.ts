@@ -18,10 +18,11 @@ export const enum SerializedWasmType {
   i64,
   f32,
   f64,
-  v128
+  v128,
+  externref
 }
 
-export function serializeWasmValue(value: WasmValue|ArrayBuffer, buffer: ArrayBufferLike): SerializedWasmType {
+export function serializeWasmValue(value: WasmValue|ArrayBuffer, buffer: SharedArrayBuffer): SerializedWasmType {
   if (value instanceof ArrayBuffer) {
     const data = new Uint8Array(value);
     new Uint8Array(buffer).set(data);
@@ -49,6 +50,11 @@ export function serializeWasmValue(value: WasmValue|ArrayBuffer, buffer: ArrayBu
       view.setInt32(8, Number(c), true);
       view.setInt32(12, Number(d), true);
       return SerializedWasmType.v128;
+    case 'externref':
+      const {written} = (new TextEncoder).encodeInto(value.value,
+                           (new Uint8Array(buffer)).subarray(2));
+      view.setUint16(0, written);
+      return SerializedWasmType.externref;
     default:
       throw new Error('cannot serialize non-numerical wasm type');
   }
@@ -81,6 +87,11 @@ export function deserializeWasmValue(buffer: ArrayBufferLike, type: SerializedWa
         value: `i32x4 0x${a.toString(16).padStart(8, '0')} 0x${b.toString(16).padStart(8, '0')} 0x${
             c.toString(16).padStart(8, '0')} 0x${d.toString(16).padStart(8, '0')}`
       };
+    case SerializedWasmType.externref:
+      const len = view.getUint16(0);
+      const value =
+        (new TextDecoder).decode(new Uint8Array(buffer).subarray(2));
+      return { type: 'externref', value };
   }
   // @ts-expect-error
   throw new Error('Invalid primitive wasm type');

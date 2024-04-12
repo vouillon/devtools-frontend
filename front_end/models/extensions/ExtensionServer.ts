@@ -369,7 +369,7 @@ export class ExtensionServer extends Common.ObjectWrapper.ObjectWrapper<EventTyp
   }
 
   private async onGetWasmGlobal(message: PrivateAPI.ExtensionServerRequestMessage):
-      Promise<Record|Chrome.DevTools.WasmValue> {
+      Promise<Record|Chrome.DevTools.WasmValue |{type: 'other', value: string}> {
     if (message.command !== PrivateAPI.Commands.GetWasmGlobal) {
       return this.status.E_BADARG('command', `expected ${PrivateAPI.Commands.GetWasmGlobal}`);
     }
@@ -379,23 +379,23 @@ export class ExtensionServer extends Common.ObjectWrapper.ObjectWrapper<EventTyp
   }
 
   private async onGetWasmLocal(message: PrivateAPI.ExtensionServerRequestMessage):
-      Promise<Record|Chrome.DevTools.WasmValue> {
+      Promise<Record|Chrome.DevTools.WasmValue |{type: 'other', value: string}> {
     if (message.command !== PrivateAPI.Commands.GetWasmLocal) {
       return this.status.E_BADARG('command', `expected ${PrivateAPI.Commands.GetWasmLocal}`);
     }
     const local = Number(message.local);
     const result = await this.loadWasmValue(true, `locals[${local}]`, message.stopId);
-    return this.convertWasmValue(result.value) ?? this.status.E_BADARG('local', `No local with index ${local}`);
+    return this.convertWasmValue(result) ?? this.status.E_BADARG('local', `No local with index ${local}`);
   }
 
   private async onGetWasmOp(message: PrivateAPI.ExtensionServerRequestMessage):
-      Promise<Record|Chrome.DevTools.WasmValue> {
+      Promise<Record|Chrome.DevTools.WasmValue |{type: 'other', value: string}> {
     if (message.command !== PrivateAPI.Commands.GetWasmOp) {
       return this.status.E_BADARG('command', `expected ${PrivateAPI.Commands.GetWasmOp}`);
     }
     const op = Number(message.op);
     const result = await this.loadWasmValue(true, `stack[${op}]`, message.stopId);
-    return this.convertWasmValue(result.value) ?? this.status.E_BADARG('op', `No operand with index ${op}`);
+    return this.convertWasmValue(result) ?? this.status.E_BADARG('op', `No operand with index ${op}`);
   }
 
   private registerRecorderExtensionEndpoint(
