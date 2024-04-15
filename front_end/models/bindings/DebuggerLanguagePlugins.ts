@@ -357,7 +357,7 @@ export class ExtensionRemoteObject extends SDK.RemoteObject.RemoteObject {
       const extensionObjectProperties = await this.plugin.getProperties(objectId);
       const properties = extensionObjectProperties.map(
           p => new SDK.RemoteObject.RemoteObjectProperty(
-              p.name, new ExtensionRemoteObject(this.callFrame, p.value, this.plugin)));
+              p.name, p.value.type=='other'?this.callFrame.debuggerModel.runtimeModel().createRemoteObject(JSON.parse(p.value.value)):new ExtensionRemoteObject(this.callFrame, p.value, this.plugin)));
       return {properties, internalProperties: null};
     }
 

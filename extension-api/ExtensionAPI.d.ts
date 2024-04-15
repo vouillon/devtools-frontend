@@ -177,9 +177,14 @@ export namespace Chrome {
       hasChildren: boolean;
     }
 
+    export interface ForeignObject {
+      type: 'other';
+      value: string;
+    }
+
     export interface PropertyDescriptor {
       name: string;
-      value: RemoteObject|{type: 'other', value: string};
+      value: RemoteObject|ForeignObject;
     }
 
     export interface LanguageExtensionPlugin {
@@ -246,7 +251,7 @@ export namespace Chrome {
        * invalidated once the debugger resumes.
        */
       evaluate(expression: string, context: RawLocation, stopId: unknown):
-          Promise<RemoteObject|{type: 'other', value: string}|null>;
+          Promise<RemoteObject|ForeignObject|null>;
 
       /**
        * Retrieve properties of the remote object identified by the object id.
@@ -265,7 +270,7 @@ export namespace Chrome {
       symbol_types: string[];
     }
 
-    export type WasmValue = {type: 'i32'|'f32'|'f64', value: number}|{type: 'i64', value: bigint}|{type: 'v128'|'other', value: string};
+    export type WasmValue = {type: 'i32'|'f32'|'f64', value: number}|{type: 'i64', value: bigint}|{type: 'v128', value: string}|ForeignObject;
 
     export interface LanguageExtensions {
       registerLanguageExtensionPlugin(

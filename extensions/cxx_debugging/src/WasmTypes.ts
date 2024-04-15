@@ -4,10 +4,7 @@
 
 import type {Chrome} from '../../../extension-api/ExtensionAPI';
 
-export type WasmValue = {
-  type: 'i32'|'f32'|'f64',
-  value: number
-}|{type: 'i64', value: bigint}|{type: 'v128'|'other', value: string};
+export type WasmValue = Chrome.DevTools.WasmValue;
 
 export type WasmSimdValue = string;
 
