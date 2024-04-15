@@ -179,7 +179,7 @@ export namespace Chrome {
 
     export interface PropertyDescriptor {
       name: string;
-      value: RemoteObject;
+      value: RemoteObject|{type: 'other', value: string};
     }
 
     export interface LanguageExtensionPlugin {

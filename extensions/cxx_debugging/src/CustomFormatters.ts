@@ -37,6 +37,7 @@ export interface WasmInterface {
   getOp(op: number): WasmValue;
   getLocal(local: number): WasmValue;
   getGlobal(global: number): WasmValue;
+  getCachedValue(i : number): string;
 }
 
 export interface Value {
@@ -342,7 +343,7 @@ export class CXXValue implements Value, LazyObject {
     return properties;
   }
 
-  async asRemoteObject(): Promise<Chrome.DevTools.RemoteObject> {
+  async asRemoteObject(): Promise<Chrome.DevTools.RemoteObject|{type: 'other', value: string}> {
     if (this.type.hasValue && this.type.arraySize === 0) {
       const formatter = CustomFormatters.get(this.type);
       if (!formatter) {
@@ -462,7 +463,7 @@ export class CXXValue implements Value, LazyObject {
 
 export interface LazyObject {
   getProperties(): Promise<{name: string, property: LazyObject}[]>;
-  asRemoteObject(): Promise<Chrome.DevTools.RemoteObject>;
+  asRemoteObject(): Promise<Chrome.DevTools.RemoteObject|{type: 'other', value: string}>;
 }
 
 export function primitiveObject<T>(
@@ -601,10 +602,12 @@ export class HostWasmInterface {
   private readonly hostInterface: HostInterface;
   private readonly stopId: unknown;
   readonly view: WasmMemoryView;
+  private readonly cache : string[];
   constructor(hostInterface: HostInterface, stopId: unknown) {
     this.hostInterface = hostInterface;
     this.stopId = stopId;
     this.view = new WasmMemoryView(this);
+    this.cache = [];
   }
   readMemory(offset: number, length: number): Uint8Array {
     return new Uint8Array(this.hostInterface.getWasmLinearMemory(offset, length, this.stopId));
@@ -613,10 +616,20 @@ export class HostWasmInterface {
     return this.hostInterface.getWasmOp(op, this.stopId);
   }
   getLocal(local: number): WasmValue {
-    return this.hostInterface.getWasmLocal(local, this.stopId);
+    const value = this.hostInterface.getWasmLocal(local, this.stopId);
+    if (value.type == 'other') {
+console.log('caching:', value);
+      this.cache.push(value.value);
+      return {type: 'i32', value: this.cache.length - 1};
+    }
+    return value;
   }
   getGlobal(global: number): WasmValue {
     return this.hostInterface.getWasmGlobal(global, this.stopId);
+  }
+  getCachedValue(i : number): string {
+console.log('cache:', i);
+    return this.cache[i];
   }
 }
 

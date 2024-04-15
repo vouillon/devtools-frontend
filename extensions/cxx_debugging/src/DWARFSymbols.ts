@@ -441,7 +441,7 @@ export class DWARFLanguageExtensionPlugin implements Chrome.DevTools.LanguageExt
     }
   }
 
-  async getValueInfo(expression: string, context: Chrome.DevTools.RawLocation, stopId: unknown): Promise<{
+  async getValueInfo(expression: string, context: Chrome.DevTools.RawLocation, wasm: Formatters.HostWasmInterface): Promise<{
     typeInfos: Formatters.TypeInfo[],
     root: Formatters.TypeInfo,
     location?: number,
@@ -457,7 +457,6 @@ export class DWARFLanguageExtensionPlugin implements Chrome.DevTools.LanguageExt
       apiRawLocation.codeOffset = context.codeOffset;
       apiRawLocation.inlineFrameIndex = context.inlineFrameIndex || 0;
 
-      const wasm = new Formatters.HostWasmInterface(this.hostInterface, stopId);
       const proxy = new Formatters.DebuggerProxy(wasm, moduleInfo.backend);
       const typeInfoResult =
           manage(moduleInfo.dwarfSymbolsPlugin.EvaluateExpression(apiRawLocation, expression, proxy));
@@ -542,13 +541,13 @@ export class DWARFLanguageExtensionPlugin implements Chrome.DevTools.LanguageExt
   }
 
   async evaluate(expression: string, context: SymbolsBackend.RawLocation, stopId: unknown):
-      Promise<Chrome.DevTools.RemoteObject|null> {
-    const valueInfo = await this.getValueInfo(expression, context, stopId);
+      Promise<Chrome.DevTools.RemoteObject|{type: 'other', value: string}|null> {
+    const wasm = new Formatters.HostWasmInterface(this.hostInterface, stopId);
+    const valueInfo = await this.getValueInfo(expression, context, wasm);
     if (!valueInfo) {
       return null;
     }
 
-    const wasm = new Formatters.HostWasmInterface(this.hostInterface, stopId);
     const cxxObject = await Formatters.CXXValue.create(this.lazyObjects, wasm, wasm.view, valueInfo);
     if (!cxxObject) {
       return {

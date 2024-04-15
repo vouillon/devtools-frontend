@@ -310,6 +310,7 @@ class SymbolFileWasmDWARF : public ::SymbolFileDWARF {
           if (!type_system.takeError()) {
             auto ast =
               clang::dyn_cast<lldb_private::TypeSystemClang>(type_system->get());
+/*
             lldb_private::CompilerType int_type =
               ast->GetBasicType(lldb::eBasicTypeInt);
           lldb_private::CompilerType clang_type =
@@ -321,9 +322,8 @@ class SymbolFileWasmDWARF : public ::SymbolFileDWARF {
                              language);
           ast->StartTagDeclarationDefinition(clang_type);
           ast->AddFieldToRecordType
-            (clang_type, "foo", /*ast->GetBuiltinTypeForEncodingAndBitSize(lldb::eEncodingSint, 32)*/int_type,lldb::eAccessPublic, 0);
+            (clang_type, "foo", int_type,lldb::eAccessPublic, 0);
           ast->CompleteTagDeclarationDefinition(clang_type);
-/*
 */
 /*
             lldb_private::CompilerType int_type =
@@ -333,9 +333,9 @@ class SymbolFileWasmDWARF : public ::SymbolFileDWARF {
             (lldb_private::ConstString(type_name.GetCString()),
              {{"foo", int_type}});
 */
-/*
             lldb_private::CompilerType clang_type =
               ast->GetBasicType(lldb::eBasicTypeInt);
+/*
 */
           lldb_private::Declaration decl;
             type_sp =

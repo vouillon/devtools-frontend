@@ -162,6 +162,7 @@ class SourceScopeRemoteObject extends SDK.RemoteObject.RemoteObjectImpl {
       let sourceVar: SDK.RemoteObject.RemoteObject|undefined;
       try {
         const evalResult = await this.#plugin.evaluate(variable.name, getRawLocation(this.#callFrame), this.stopId);
+console.log('result', evalResult);
         sourceVar = evalResult ?
             evalResult.type == 'other' ?
             this.#callFrame.debuggerModel.runtimeModel().createRemoteObject(JSON.parse(evalResult.value)) :
