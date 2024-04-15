@@ -262,11 +262,6 @@ class SymbolFileWasmDWARF : public ::SymbolFileDWARF {
     return LLDB_INVALID_OFFSET;
   }
 
-  template<class... Ts>
-  struct overloaded : Ts... { using Ts::operator()...; };
-  template<class... Ts>
-  overloaded(Ts...) -> overloaded<Ts...>;
-
   bool ParseVendorDWARFOpcode(
       uint8_t op,
       const lldb_private::DataExtractor& opcodes,
@@ -285,11 +280,10 @@ class SymbolFileWasmDWARF : public ::SymbolFileDWARF {
           llvm::errs() << llvm::toString(value.takeError());
           return false;
         }
-        std::visit(overloaded{
-            [&stack](auto v) { stack.push_back(lldb_private::Scalar(v)); },
-              [&stack](std::string s) { stack.push_back(lldb_private::Value((const void *) s.c_str(), s.length())); }},
-            value->value);
-//        stack.back().SetValueType(lldb_private::Value::ValueType::Scalar);
+        auto stack_value = std::visit(
+            [](auto v) { return lldb_private::Scalar(v); }, value->value);
+        stack.push_back(stack_value);
+        stack.back().SetValueType(lldb_private::Value::ValueType::Scalar);
         return true;
       }
     }
@@ -310,6 +304,14 @@ class SymbolFileWasmDWARF : public ::SymbolFileDWARF {
           if (!type_system.takeError()) {
             auto ast =
               clang::dyn_cast<lldb_private::TypeSystemClang>(type_system->get());
+
+/*
+          lldb_private::CompilerType clang_type =
+            ast->GetBuiltinTypeForEncodingAndBitSize(lldb::eEncodingUint,64);
+*/
+            lldb_private::CompilerType clang_type =
+              ast->GetBasicType(lldb::eBasicTypeLongLong);
+/*
             lldb_private::CompilerType int_type =
               ast->GetBasicType(lldb::eBasicTypeInt);
           lldb_private::CompilerType clang_type =
@@ -321,9 +323,8 @@ class SymbolFileWasmDWARF : public ::SymbolFileDWARF {
                              language);
           ast->StartTagDeclarationDefinition(clang_type);
           ast->AddFieldToRecordType
-            (clang_type, "foo", /*ast->GetBuiltinTypeForEncodingAndBitSize(lldb::eEncodingSint, 32)*/int_type,lldb::eAccessPublic, 0);
+            (clang_type, "foo", int_type.GetPointerType(),lldb::eAccessPublic, 0);
           ast->CompleteTagDeclarationDefinition(clang_type);
-/*
 */
 /*
             lldb_private::CompilerType int_type =
@@ -341,7 +342,7 @@ class SymbolFileWasmDWARF : public ::SymbolFileDWARF {
             type_sp =
               std::make_shared<lldb_private::Type>
               (lldb::user_id_t(0x1234),
-               this, type_name, 4, nullptr,
+               this, type_name, 8, nullptr,
                LLDB_INVALID_UID,
                lldb_private::Type::eEncodingIsUID, decl,
                clang_type,

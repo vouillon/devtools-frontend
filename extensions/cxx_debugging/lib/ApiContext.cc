@@ -554,10 +554,8 @@ static llvm::Expected<DebuggerProxy::WasmValue> readWasmValue(
                                     value["value"].as<double>()};
   }
   if (type == "other") {
-    return DebuggerProxy::WasmValue{llvm::wasm::ValType::I32,
+    return DebuggerProxy::WasmValue{llvm::wasm::ValType::I64,
                                     0x1234};
-//    return DebuggerProxy::WasmValue{llvm::wasm::ValType::EXTERNREF,
-//                                    value["value"].as<std::string>()};
   }
   return llvm::createStringError(llvm::inconvertibleErrorCode(),
                                  "Invalid value type %s", type.c_str());
