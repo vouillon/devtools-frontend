@@ -128,10 +128,10 @@ class NamespaceObject extends SDK.RemoteObject.LocalJSONObject {
 }
 
 function wrapRemoteObject(callFrame : SDK.DebuggerModel.CallFrame, object : Chrome.DevTools.RemoteObject|Chrome.DevTools.ForeignObject, plugin: DebuggerLanguagePlugin) : SDK.RemoteObject.RemoteObject {
-  if (object.type == 'other') {
-    return callFrame.debuggerModel.runtimeModel().createRemoteObject(JSON.parse(object.value))
-  } else {
-    return new ExtensionRemoteObject(callFrame, object, plugin) }
+  if (object.type === 'other') {
+    return callFrame.debuggerModel.runtimeModel().createRemoteObject(JSON.parse(object.value));
+  }
+    return new ExtensionRemoteObject(callFrame, object, plugin);
 }
 
 class SourceScopeRemoteObject extends SDK.RemoteObject.RemoteObjectImpl {

@@ -318,7 +318,7 @@ export class ExtensionServer extends Common.ObjectWrapper.ObjectWrapper<EventTyp
     return this.status.OK();
   }
 
-  private async loadWasmValue<T>(expectValue:boolean, convert:(result:any)=>T, expression: string, stopId: unknown): Promise<Record|T> {
+  private async loadWasmValue<T>(expectValue:boolean, convert:(result:Protocol.Debugger.RemoteObject)=>T, expression: string, stopId: unknown): Promise<Record|T> {
     const {pluginManager} = Bindings.DebuggerWorkspaceBinding.DebuggerWorkspaceBinding.instance();
     const callFrame = pluginManager.callFrameForStopId(stopId as Bindings.DebuggerLanguagePlugins.StopId);
     if (!callFrame) {
@@ -344,16 +344,15 @@ export class ExtensionServer extends Common.ObjectWrapper.ObjectWrapper<EventTyp
     if (message.command !== PrivateAPI.Commands.GetWasmLinearMemory) {
       return this.status.E_BADARG('command', `expected ${PrivateAPI.Commands.GetWasmLinearMemory}`);
     }
-    return await this.loadWasmValue<number[]>(false, (result)=>result.value,
+    return await this.loadWasmValue<number[]>(false, result=>result.value,
         `[].slice.call(new Uint8Array(memories[0].buffer, ${Number(message.offset)}, ${Number(message.length)}))`,
         message.stopId);
   }
 
-
   private convertWasmValue(obj : Protocol.Runtime.RemoteObject) : Chrome.DevTools.WasmValue {
       const type = obj?.description;
-      let value : string =
-        obj.preview?.properties?.find((o)=>o.name=="value")?.value ?? '';
+      const value : string =
+        obj.preview?.properties?.find(o=>o.name==='value')?.value ?? '';
       switch (type) {
       case 'i32':case 'f32':case 'f64':
            return { type, value: Number(value)};
@@ -362,7 +361,7 @@ export class ExtensionServer extends Common.ObjectWrapper.ObjectWrapper<EventTyp
       case 'v128':
            return { type, value};
       default:
-           return { type: 'other', value: JSON.stringify (obj)};
+           return { type: 'other', value: JSON.stringify(obj)};
       }
   }
 
