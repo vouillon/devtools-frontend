@@ -19,7 +19,7 @@ export const enum SerializedWasmType {
   other
 }
 
-export function serializeWasmValue(value: WasmValue|ArrayBuffer, buffer: SharedArrayBuffer): SerializedWasmType {
+export function serializeWasmValue(value: WasmValue|ArrayBuffer, buffer: ArrayBufferLike): SerializedWasmType {
   if (value instanceof ArrayBuffer) {
     const data = new Uint8Array(value);
     new Uint8Array(buffer).set(data);

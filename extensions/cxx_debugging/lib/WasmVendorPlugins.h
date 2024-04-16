@@ -7,12 +7,10 @@
 #include "ApiContext.h"
 #include "Plugins/SymbolFile/DWARF/SymbolFileDWARF.h"
 #include "Plugins/SymbolFile/DWARF/DWARFDeclContext.h"
-#include "Plugins/SymbolFile/DWARF/DWARFDIE.h"
 #include "Plugins/TypeSystem/Clang/TypeSystemClang.h"
 #include "lldb/Core/Debugger.h"
 #include "lldb/Target/RegisterContext.h"
 #include "lldb/Target/Unwind.h"
-#include "lldb/Core/Debugger.h"
 #include "llvm/BinaryFormat/Dwarf.h"
 
 class SymbolVendorWASM;
@@ -294,6 +292,8 @@ class SymbolFileWasmDWARF : public ::SymbolFileDWARF {
   std::shared_ptr<lldb_private::Type> type_sp;
 
   lldb::TypeSP FindDefinitionTypeForDWARFDeclContext(const DWARFDeclContext &dwarf_decl_ctx) override {
+    // We define type externref_t as a 32-bit integer, so as to be
+    // able to transfer some information through the interpreter
     const uint32_t dwarf_decl_ctx_count = dwarf_decl_ctx.GetSize();
     if (dwarf_decl_ctx_count > 0) {
       const lldb_private::ConstString type_name(dwarf_decl_ctx[0].name);
@@ -304,40 +304,14 @@ class SymbolFileWasmDWARF : public ::SymbolFileDWARF {
           if (!type_system.takeError()) {
             auto ast =
               clang::dyn_cast<lldb_private::TypeSystemClang>(type_system->get());
-/*
-            lldb_private::CompilerType int_type =
-              ast->GetBasicType(lldb::eBasicTypeInt);
-          lldb_private::CompilerType clang_type =
-            ast->
-            CreateRecordType(ast->GetTranslationUnitDecl(),
-                             lldb_private::OptionalClangModuleID (),
-                             lldb::eAccessPublic,
-                             type_name.GetCString(), clang::TTK_Struct,
-                             language);
-          ast->StartTagDeclarationDefinition(clang_type);
-          ast->AddFieldToRecordType
-            (clang_type, "foo", int_type,lldb::eAccessPublic, 0);
-          ast->CompleteTagDeclarationDefinition(clang_type);
-*/
-/*
-            lldb_private::CompilerType int_type =
-              ast->GetBasicType(lldb::eBasicTypeInt);
-          lldb_private::CompilerType clang_type =
-            ast->CreateStructForIdentifier
-            (lldb_private::ConstString(type_name.GetCString()),
-             {{"foo", int_type}});
-*/
             lldb_private::CompilerType clang_type =
               ast->GetBasicType(lldb::eBasicTypeInt);
-/*
-*/
-          lldb_private::Declaration decl;
             type_sp =
               std::make_shared<lldb_private::Type>
-              (lldb::user_id_t(0x1234),
+              (lldb::user_id_t(0),
                this, type_name, 4, nullptr,
                LLDB_INVALID_UID,
-               lldb_private::Type::eEncodingIsUID, decl,
+               lldb_private::Type::eEncodingIsUID, lldb_private::Declaration(),
                clang_type,
                lldb_private::Type::ResolveState::Forward);
           }

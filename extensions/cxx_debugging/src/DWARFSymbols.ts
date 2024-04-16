@@ -541,7 +541,7 @@ export class DWARFLanguageExtensionPlugin implements Chrome.DevTools.LanguageExt
   }
 
   async evaluate(expression: string, context: SymbolsBackend.RawLocation, stopId: unknown):
-      Promise<Chrome.DevTools.RemoteObject|{type: 'other', value: string}|null> {
+      Promise<Chrome.DevTools.RemoteObject|Chrome.DevTools.ForeignObject|null> {
     const wasm = new Formatters.HostWasmInterface(this.hostInterface, stopId);
     const valueInfo = await this.getValueInfo(expression, context, wasm);
     if (!valueInfo) {
