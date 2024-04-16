@@ -169,7 +169,6 @@ class SourceScopeRemoteObject extends SDK.RemoteObject.RemoteObjectImpl {
       let sourceVar: SDK.RemoteObject.RemoteObject|undefined;
       try {
         const evalResult = await this.#plugin.evaluate(variable.name, getRawLocation(this.#callFrame), this.stopId);
-console.log('result', evalResult);
         sourceVar = evalResult ?
             wrapRemoteObject(this.#callFrame, evalResult, this.#plugin) :
             new SDK.RemoteObject.LocalJSONObject(undefined);

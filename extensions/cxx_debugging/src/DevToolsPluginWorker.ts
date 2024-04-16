@@ -7,7 +7,7 @@ import {type Chrome} from '../../../extension-api/ExtensionAPI.js';
 import {createPlugin, type ResourceLoader} from './DWARFSymbols.js';
 import {type ModuleConfigurations} from './ModuleConfiguration.js';
 
-import {deserializeWasmMemory, deserializeWasmValue, kMaxWasmValueSize, type WasmValue} from './WasmTypes.js';
+import {deserializeWasmMemory, deserializeWasmValue, kWasmValueSize, kMaxWasmValueSize, type WasmValue} from './WasmTypes.js';
 
 import {SynchronousIOMessage} from './WorkerRPC.js';
 import {WorkerRPC, type Channel, type HostInterface, type WorkerInterface} from './WorkerRPC.js';
@@ -46,17 +46,17 @@ export class RPCInterface implements WorkerInterface, HostInterface {
 
   getWasmLinearMemory(offset: number, length: number, stopId: unknown): ArrayBuffer {
     return this.rpc.sendMessageSync(
-        new SynchronousLinearMemoryMessage(length), 'getWasmLinearMemory', offset, length, stopId);
+        new SynchronousLinearMemoryMessage(length, length), 'getWasmLinearMemory', offset, length, stopId);
   }
   getWasmLocal(local: number, stopId: unknown): WasmValue {
-    return this.rpc.sendMessageSync(new SynchronousWasmValueMessage(kMaxWasmValueSize), 'getWasmLocal', local, stopId);
+    return this.rpc.sendMessageSync(new SynchronousWasmValueMessage(kWasmValueSize, kMaxWasmValueSize), 'getWasmLocal', local, stopId);
   }
   getWasmGlobal(global: number, stopId: unknown): WasmValue {
     return this.rpc.sendMessageSync(
-        new SynchronousWasmValueMessage(kMaxWasmValueSize), 'getWasmGlobal', global, stopId);
+        new SynchronousWasmValueMessage(kWasmValueSize, kMaxWasmValueSize), 'getWasmGlobal', global, stopId);
   }
   getWasmOp(op: number, stopId: unknown): WasmValue {
-    return this.rpc.sendMessageSync(new SynchronousWasmValueMessage(kMaxWasmValueSize), 'getWasmOp', op, stopId);
+    return this.rpc.sendMessageSync(new SynchronousWasmValueMessage(kWasmValueSize, kMaxWasmValueSize), 'getWasmOp', op, stopId);
   }
   reportResourceLoad(resourceUrl: string, status: {success: boolean, errorMessage?: string, size?: number}):
       Promise<void> {
