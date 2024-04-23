@@ -319,7 +319,7 @@ export class ExtensionServer extends Common.ObjectWrapper.ObjectWrapper<EventTyp
   }
 
   private async loadWasmValue<T>(
-      expectValue: boolean, convert: (result: Protocol.Debugger.RemoteObject) => T, expression: string,
+      expectValue: boolean, convert: (result: Protocol.Runtime.RemoteObject) => T, expression: string,
       stopId: unknown): Promise<Record|T> {
     const {pluginManager} = Bindings.DebuggerWorkspaceBinding.DebuggerWorkspaceBinding.instance();
     const callFrame = pluginManager.callFrameForStopId(stopId as Bindings.DebuggerLanguagePlugins.StopId);

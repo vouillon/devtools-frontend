@@ -260,16 +260,14 @@ export function formatInt128(wasm: WasmInterface, value: Value): bigint {
 CustomFormatters.addFormatter({types: ['__int128'], format: formatInt128});
 
 export function formatExternRef(wasm: WasmInterface, value: Value): () => LazyObject {
-  const foreignObject = {type: 'other', value: wasm.getCachedValue(value.asUint32())};
   const obj = {
     async getProperties(): Promise<{name: string, property: LazyObject}[]> {
       return [];
     },
     async asRemoteObject(): Promise<{type: 'other', value: string}> {
-      return foreignObject;
+      return {type: 'other', value: wasm.getCachedValue(value.asUint32())};
     }
   };
   return () => obj;
 }
-CustomFormatters.addFormatter({types: ['__externref_t'], format: formatExternRef});
-CustomFormatters.addFormatter({types: ['externref_t'], format: formatExternRef});
+CustomFormatters.addFormatter({types: ['__externref_t', 'externref_t'], format: formatExternRef});

@@ -289,7 +289,7 @@ class SymbolFileWasmDWARF : public ::SymbolFileDWARF {
     return false;
   }
 
-  std::shared_ptr<lldb_private::Type> type_sp;
+  std::shared_ptr<lldb_private::Type> externref_type_sp;
 
   lldb::TypeSP FindDefinitionTypeForDWARFDeclContext(
       const DWARFDeclContext& dwarf_decl_ctx) override {
@@ -299,22 +299,21 @@ class SymbolFileWasmDWARF : public ::SymbolFileDWARF {
     if (dwarf_decl_ctx_count > 0) {
       const lldb_private::ConstString type_name(dwarf_decl_ctx[0].name);
       if (type_name == "externref_t") {
-        if (!type_sp) {
+        if (!externref_type_sp) {
           const lldb::LanguageType language = dwarf_decl_ctx.GetLanguage();
           auto type_system = GetTypeSystemForLanguage(language);
-          if (!type_system.takeError()) {
-            auto ast = clang::dyn_cast<lldb_private::TypeSystemClang>(
-                type_system->get());
-            lldb_private::CompilerType clang_type =
-                ast->GetBasicType(lldb::eBasicTypeInt);
-            type_sp = std::make_shared<lldb_private::Type>(
-                lldb::user_id_t(0), this, type_name, 4, nullptr,
-                LLDB_INVALID_UID, lldb_private::Type::eEncodingIsUID,
-                lldb_private::Declaration(), clang_type,
-                lldb_private::Type::ResolveState::Forward);
-          }
-          return type_sp;
+          bool ok = !type_system.takeError();
+          assert(ok);
+          auto ast = clang::dyn_cast<lldb_private::TypeSystemClang>(
+              type_system->get());
+          lldb_private::CompilerType clang_type =
+              ast->GetBasicType(lldb::eBasicTypeInt);
+          externref_type_sp = std::make_shared<lldb_private::Type>(
+              lldb::user_id_t(0), this, type_name, 4, nullptr, LLDB_INVALID_UID,
+              lldb_private::Type::eEncodingIsUID, lldb_private::Declaration(),
+              clang_type, lldb_private::Type::ResolveState::Forward);
         }
+        return externref_type_sp;
       }
     }
     return SymbolFileDWARF::FindDefinitionTypeForDWARFDeclContext(
