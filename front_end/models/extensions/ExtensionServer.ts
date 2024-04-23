@@ -319,7 +319,7 @@ export class ExtensionServer extends Common.ObjectWrapper.ObjectWrapper<EventTyp
   }
 
   private async loadWasmValue<T>(
-      expectValue: boolean, convert: (result: Protocol.Runtime.RemoteObject) => T, expression: string,
+      expectValue: boolean, convert: (result: Protocol.Runtime.RemoteObject) => Record | T, expression: string,
       stopId: unknown): Promise<Record|T> {
     const {pluginManager} = Bindings.DebuggerWorkspaceBinding.DebuggerWorkspaceBinding.instance();
     const callFrame = pluginManager.callFrameForStopId(stopId as Bindings.DebuggerLanguagePlugins.StopId);
@@ -352,7 +352,13 @@ export class ExtensionServer extends Common.ObjectWrapper.ObjectWrapper<EventTyp
         message.stopId);
   }
 
-  private convertWasmValue(obj: Protocol.Runtime.RemoteObject): Chrome.DevTools.WasmValue {
+  private convertWasmValue(obj: Protocol.Runtime.RemoteObject): Chrome.DevTools.WasmValue|undefined|Record {
+    if (obj.type === 'undefined') {
+      return;
+    }
+    if (obj.type !== 'object' || obj.subtype !== 'wasmvalue') {
+      return this.status.E_FAILED('Bad object type');
+    }
     const type = obj?.description;
     const value: string = obj.preview?.properties?.find(o => o.name === 'value')?.value ?? '';
     switch (type) {
@@ -375,7 +381,7 @@ export class ExtensionServer extends Common.ObjectWrapper.ObjectWrapper<EventTyp
       return this.status.E_BADARG('command', `expected ${PrivateAPI.Commands.GetWasmGlobal}`);
     }
     const global = Number(message.global);
-    const result = await this.loadWasmValue<Chrome.DevTools.WasmValue>(
+    const result = await this.loadWasmValue<Chrome.DevTools.WasmValue|undefined>(
         true, this.convertWasmValue, `globals[${global}]`, message.stopId);
     return result ?? this.status.E_BADARG('global', `No global with index ${global}`);
   }
@@ -386,7 +392,7 @@ export class ExtensionServer extends Common.ObjectWrapper.ObjectWrapper<EventTyp
       return this.status.E_BADARG('command', `expected ${PrivateAPI.Commands.GetWasmLocal}`);
     }
     const local = Number(message.local);
-    const result = await this.loadWasmValue<Chrome.DevTools.WasmValue>(
+    const result = await this.loadWasmValue<Chrome.DevTools.WasmValue|undefined>(
         true, this.convertWasmValue, `locals[${local}]`, message.stopId);
     return result ?? this.status.E_BADARG('local', `No local with index ${local}`);
   }
@@ -397,7 +403,7 @@ export class ExtensionServer extends Common.ObjectWrapper.ObjectWrapper<EventTyp
       return this.status.E_BADARG('command', `expected ${PrivateAPI.Commands.GetWasmOp}`);
     }
     const op = Number(message.op);
-    const result = await this.loadWasmValue<Chrome.DevTools.WasmValue>(
+    const result = await this.loadWasmValue<Chrome.DevTools.WasmValue|undefined>(
         true, this.convertWasmValue, `stack[${op}]`, message.stopId);
     return result ?? this.status.E_BADARG('op', `No operand with index ${op}`);
   }
