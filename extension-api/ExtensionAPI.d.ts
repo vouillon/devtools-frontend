@@ -177,8 +177,14 @@ export namespace Chrome {
       hasChildren: boolean;
     }
 
+    /**
+     * This refers to a Javascript or a Wasm value of reference type
+     * in the V8 engine. We call it foreign object here to emphasize
+     * the difference with the remote objects managed by a language
+     * extension plugin.
+     */
     export interface ForeignObject {
-      type: 'other';
+      type: 'reftype';
       value: string;
     }
 

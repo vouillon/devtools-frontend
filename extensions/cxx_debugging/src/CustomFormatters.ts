@@ -623,7 +623,7 @@ export class HostWasmInterface {
   maybeCache(value: WasmValue): WasmValue {
     // Only a scalar value can cross the DWARF interpreter, so we
     // replace the value by an integer.
-    if (value.type == 'other') {
+    if (value.type == 'reftype') {
       this.cache.push(value.value);
       return {type: 'i32', value: this.cache.length - 1};
     }

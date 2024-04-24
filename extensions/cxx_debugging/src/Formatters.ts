@@ -264,8 +264,8 @@ export function formatExternRef(wasm: WasmInterface, value: Value): () => LazyOb
     async getProperties(): Promise<{name: string, property: LazyObject}[]> {
       return [];
     },
-    async asRemoteObject(): Promise<{type: 'other', value: string}> {
-      return {type: 'other', value: wasm.getCachedValue(value.asUint32())};
+    async asRemoteObject(): Promise<{type: 'reftype', value: string}> {
+      return {type: 'reftype', value: wasm.getCachedValue(value.asUint32())};
     }
   };
   return () => obj;

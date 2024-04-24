@@ -371,7 +371,7 @@ export class ExtensionServer extends Common.ObjectWrapper.ObjectWrapper<EventTyp
       case 'v128':
         return {type, value};
       default:
-        return {type: 'other', value: JSON.stringify(obj)};
+        return {type: 'reftype', value: JSON.stringify(obj)};
     }
   }
 

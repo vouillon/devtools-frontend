@@ -417,7 +417,7 @@ export class Debugger {
       case 'v128':
         return {type, value};
       default:
-        return {type: 'other', value: JSON.stringify(obj)};
+        return {type: 'reftype', value: JSON.stringify(obj)};
     }
   }
   getWasmLocal(local: number, stopId: bigint): Promise<WasmValue> {
