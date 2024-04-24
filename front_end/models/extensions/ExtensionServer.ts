@@ -371,7 +371,10 @@ export class ExtensionServer extends Common.ObjectWrapper.ObjectWrapper<EventTyp
       case 'v128':
         return {type, value};
       default:
-        return {type: 'reftype', value: JSON.stringify(obj)};
+        if (!obj.objectId) {
+          return this.status.E_FAILED('Object without id');
+        }
+        return {type: 'reftype', value: obj.objectId};
     }
   }
 

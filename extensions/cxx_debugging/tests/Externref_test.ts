@@ -44,18 +44,18 @@ describe('Externref', () => {
 
     {
       const {value} = nonNull(await plugin.evaluate('x', rawLocation, debug.stopIdForCallFrame(callFrame)));
-      const {subtype, description, preview} = JSON.parse(value);
+      const {subtype, description, preview} = await debug.getRemoteObject(value);
       expect(subtype).to.eql('wasmvalue');
       expect(description).to.eql('externref');
-      expect(preview.properties).to.eql([{'name': 'value', 'type': 'object', 'value': 'Object'}]);
+      expect(preview?.properties).to.eql([{'name': 'value', 'type': 'object', 'value': 'Object'}]);
     }
 
     {
       const {value} = nonNull(await plugin.evaluate('y', rawLocation, debug.stopIdForCallFrame(callFrame)));
-      const {subtype, description, preview} = JSON.parse(value);
+      const {subtype, description, preview} = await debug.getRemoteObject(value);
       expect(subtype).to.eql('wasmvalue');
       expect(description).to.eql('externref');
-      expect(preview.properties).to.eql([{'name': 'value', 'type': 'string', 'value': 'test'}]);
+      expect(preview?.properties).to.eql([{'name': 'value', 'type': 'string', 'value': 'test'}]);
     }
 
     await debug.resume();

@@ -252,6 +252,16 @@ export class Debugger {
     return result;
   }
 
+  async getRemoteObject(objectId: string): Promise<Protocol.Runtime.RemoteObject> {
+    const {result, exceptionDetails} = await this.send(
+        'Runtime.callFunctionOn',
+        {objectId, functionDeclaration: 'function(){return this}', arguments: [], silent: true, generatePreview: true});
+    if (exceptionDetails) {
+      throw new Error(exceptionDetails.exception?.description ?? exceptionDetails.text);
+    }
+    return result;
+  }
+
   async toObject(objectId: string, ...keys: string[]): Promise<Record<string, unknown>> {
     const {result, exceptionDetails} = await this.send('Runtime.getProperties', {objectId});
     if (exceptionDetails) {
@@ -417,7 +427,10 @@ export class Debugger {
       case 'v128':
         return {type, value};
       default:
-        return {type: 'reftype', value: JSON.stringify(obj)};
+        if (!obj.objectId) {
+          throw new Error('Object without id');
+        }
+        return {type: 'reftype', value: obj.objectId};
     }
   }
   getWasmLocal(local: number, stopId: bigint): Promise<WasmValue> {

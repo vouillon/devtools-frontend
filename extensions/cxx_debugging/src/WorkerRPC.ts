@@ -64,10 +64,8 @@ type Response<Interface extends Object> = {
 
 export abstract class SynchronousIOMessage<T> {
   readonly buffer: SharedArrayBuffer;
-  constructor(bufferSize: number, maxBufferSize: number) {
-    this.buffer =
-        // Typescript does not know this second parameter
-        new (SharedArrayBuffer as any)(bufferSize, {maxByteLength: maxBufferSize});
+  constructor(bufferSize: number) {
+    this.buffer = new SharedArrayBuffer(bufferSize);
   }
 
   abstract deserialize(response: number): T;

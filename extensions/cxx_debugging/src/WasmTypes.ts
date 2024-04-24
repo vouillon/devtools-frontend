@@ -49,10 +49,8 @@ export function serializeWasmValue(value: WasmValue|ArrayBuffer, buffer: ArrayBu
       return SerializedWasmType.v128;
     case 'reftype':
       const data = (new TextEncoder).encode(value.value);
-      // Typescript does not know the grow method
-      (buffer as any).grow(Math.max(kWasmValueSize, data.length + 2));
-      (new Uint8Array(buffer)).subarray(2).set(data);
-      view.setUint16(0, data.length);
+      (new Uint8Array(buffer)).subarray(1).set(data);
+      view.setUint8(0, data.length);
       return SerializedWasmType.reftype;
     default:
       throw new Error('cannot serialize non-numerical wasm type');
@@ -87,16 +85,15 @@ export function deserializeWasmValue(buffer: ArrayBufferLike, type: SerializedWa
             c.toString(16).padStart(8, '0')} 0x${d.toString(16).padStart(8, '0')}`
       };
     case SerializedWasmType.reftype:
-      const len = view.getUint16(0);
-      const value = (new TextDecoder).decode(new Uint8Array(buffer).slice(2, len + 2));
+      const len = view.getUint8(0);
+      const value = (new TextDecoder).decode(new Uint8Array(buffer).slice(1, len + 1));
       return {type: 'reftype', value};
   }
   // @ts-expect-error
   throw new Error('Invalid primitive wasm type');
 }
 
-export const kWasmValueSize = 4 + 4 + 4 * 10;  // Max size for basic types
-export const kMaxWasmValueSize = 65536;
+export const kMaxWasmValueSize = 4 + 4 + 4 * 10;
 
 export type WasmFunction = (...args: WasmPrimitive[]) => WasmPrimitive;
 

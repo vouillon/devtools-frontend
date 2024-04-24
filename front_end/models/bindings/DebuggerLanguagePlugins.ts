@@ -127,11 +127,20 @@ class NamespaceObject extends SDK.RemoteObject.LocalJSONObject {
   }
 }
 
-function wrapRemoteObject(
+async function getRemoteObject(callFrame: SDK.DebuggerModel.CallFrame, objectId: Protocol.Runtime.RemoteObjectId):
+    Promise<Protocol.Runtime.RemoteObject> {
+  const response = await callFrame.debuggerModel.runtimeModel().agent.invoke_callFunctionOn(
+      {objectId, functionDeclaration: 'function(){return this}', arguments: [], silent: true, generatePreview: true});
+  // ZZZ check for error
+  return response.result;
+}
+
+async function wrapRemoteObject(
     callFrame: SDK.DebuggerModel.CallFrame, object: Chrome.DevTools.RemoteObject|Chrome.DevTools.ForeignObject,
-    plugin: DebuggerLanguagePlugin): SDK.RemoteObject.RemoteObject {
+    plugin: DebuggerLanguagePlugin): Promise<SDK.RemoteObject.RemoteObject> {
   if (object.type === 'reftype') {
-    return callFrame.debuggerModel.runtimeModel().createRemoteObject(JSON.parse(object.value));
+    const obj = await getRemoteObject(callFrame, object.value as Protocol.Runtime.RemoteObjectId);
+    return callFrame.debuggerModel.runtimeModel().createRemoteObject(obj);
   }
   return new ExtensionRemoteObject(callFrame, object, plugin);
 }
@@ -171,7 +180,7 @@ class SourceScopeRemoteObject extends SDK.RemoteObject.RemoteObjectImpl {
       let sourceVar: SDK.RemoteObject.RemoteObject|undefined;
       try {
         const evalResult = await this.#plugin.evaluate(variable.name, getRawLocation(this.#callFrame), this.stopId);
-        sourceVar = evalResult ? wrapRemoteObject(this.#callFrame, evalResult, this.#plugin) :
+        sourceVar = evalResult ? await wrapRemoteObject(this.#callFrame, evalResult, this.#plugin) :
                                  new SDK.RemoteObject.LocalJSONObject(undefined);
       } catch (e) {
         console.warn(e);
@@ -360,9 +369,9 @@ export class ExtensionRemoteObject extends SDK.RemoteObject.RemoteObject {
     if (objectId) {
       assertNotNullOrUndefined(this.plugin.getProperties);
       const extensionObjectProperties = await this.plugin.getProperties(objectId);
-      const properties = extensionObjectProperties.map(
-          p => new SDK.RemoteObject.RemoteObjectProperty(
-              p.name, wrapRemoteObject(this.callFrame, p.value, this.plugin)));
+      const properties = await Promise.all(extensionObjectProperties.map(
+          async p => new SDK.RemoteObject.RemoteObjectProperty(
+              p.name, await wrapRemoteObject(this.callFrame, p.value, this.plugin))));
       return {properties, internalProperties: null};
     }
 
@@ -451,7 +460,7 @@ export class DebuggerLanguagePluginManager implements
     try {
       const object = await plugin.evaluate(expression, location, this.stopIdForCallFrame(callFrame));
       if (object) {
-        return {object: wrapRemoteObject(callFrame, object, plugin), exceptionDetails: undefined};
+        return {object: await wrapRemoteObject(callFrame, object, plugin), exceptionDetails: undefined};
       }
       return {object: new SDK.RemoteObject.LocalJSONObject(undefined), exceptionDetails: undefined};
     } catch (error) {
